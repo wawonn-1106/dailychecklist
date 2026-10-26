@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#183c2c">
+  <title>日常チェック</title>
+  <style>
+    :root { color-scheme:light; --ink:#202923; --muted:#737b75; --green:#347452; --green-soft:#edf5ef; --line:#e4e8e4; --surface:#fff; --page:#f4f6f4; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; padding:36px 16px; color:var(--ink); background:var(--page); font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:min(100%,540px); margin:30px auto; padding:30px; background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:0 10px 32px #1f33250b; }
+    header { padding:0 0 22px; border-bottom:1px solid var(--line); }
+    .crest { display:none; }
+    .eyebrow { margin:0 0 6px; color:var(--green); font:650 11px/1.4 system-ui,sans-serif; letter-spacing:.12em; }
+    h1 { margin:0; color:var(--ink); font-size:26px; font-weight:700; letter-spacing:.01em; }
+    #today { margin:7px 0 0; color:var(--muted); font-size:14px; }
+    .section-title { margin:22px 0 12px; color:var(--ink); font-size:15px; font-weight:650; }
+    .section-title::before,.section-title::after { content:none; }
+    .add-form { display:flex; gap:8px; margin-bottom:12px; }
+    .add-form input { min-width:0; flex:1; padding:11px 12px; color:var(--ink); background:#fff; border:1px solid #cfd6d0; border-radius:8px; font:14px system-ui,sans-serif; }
+    .add-form input:focus { outline:3px solid #34745226; border-color:var(--green); }
+    button { cursor:pointer; font:inherit; }
+    .add-form button { padding:0 15px; border:1px solid var(--green); border-radius:8px; color:#fff; background:var(--green); font:600 14px system-ui,sans-serif; }
+    .add-form button:hover { background:#285b3f; }
+    .card { overflow:hidden; background:var(--surface); border:1px solid var(--line); border-radius:10px; }
+    .row { display:grid; grid-template-columns:minmax(0,1fr) 56px; align-items:stretch; min-height:76px; padding:0 12px 0 14px; border-bottom:1px solid var(--line); border-left:3px solid transparent; transition:background .15s,border-color .15s; }
+    .row:last-child { border-bottom:0; }
+    .row:hover { background:#fafbfa; }
+    .check-label { display:grid; grid-template-columns:22px minmax(0,1fr); align-items:center; gap:12px; min-width:0; padding:12px 8px 12px 0; cursor:pointer; }
+    .row input { position:absolute; width:1px; height:1px; opacity:0; }
+    .rune-check { display:grid; place-items:center; width:22px; height:22px; border:1.5px solid #aeb8b0; border-radius:6px; color:#fff; background:#fff; transition:background .15s,border-color .15s; }
+    .rune-check svg { width:15px; height:15px; opacity:0; transform:scale(.75); transition:.15s; }
+    .row input:checked + .rune-check { border-color:var(--green); background:var(--green); }
+    .row input:checked + .rune-check svg { opacity:1; transform:scale(1); }
+    .row input:focus-visible + .rune-check { outline:3px solid #34745238; outline-offset:3px; }
+    .item-copy { display:flex; flex-direction:column; justify-content:center; gap:4px; min-width:0; }
+    .label-text { overflow-wrap:anywhere; font-size:15px; font-weight:550; line-height:1.35; }
+    .checked-at { min-height:16px; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; }
+    .row.done { border-left-color:var(--green); background:var(--green-soft); }
+    .row.done .label-text { color:var(--green); font-weight:650; }
+    .row.done .checked-at { color:var(--green); }
+    .delete-item { align-self:center; justify-self:end; width:48px; padding:7px 0; border:1px solid var(--line); border-radius:7px; color:var(--muted); background:#fff; font-size:12px; }
+    .delete-item:hover { color:#8b4545; border-color:#d8baba; background:#fffafa; }
+    .summary { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:14px; color:var(--muted); font-size:13px; }
+    #progress { color:var(--ink); font-weight:650; }
+    #reset { padding:8px 11px; border:1px solid var(--line); border-radius:8px; color:var(--ink); background:#fff; font-size:13px; }
+    #reset:hover { border-color:#b8c5bb; background:#f8faf8; }
+    footer { margin-top:20px; color:#9aa19b; text-align:center; font-size:10px; letter-spacing:.08em; }
+    @media (max-width:480px) { body { padding:18px 12px; } main { margin:10px auto; padding:22px 16px; border-radius:12px; } h1 { font-size:23px; } .summary { align-items:flex-start; flex-direction:column; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none !important; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="crest" aria-hidden="true"><span></span><svg viewBox="0 0 32 32" fill="none"><path d="M16 3 4 25h24L16 3Z" stroke="currentColor" stroke-width="1.5"/><path d="m10 14 6 11 6-11M16 3v22" stroke="currentColor" stroke-width="1"/></svg><span></span></div>
+      <p class="eyebrow">DAILY CHECK</p>
+      <h1>日常チェック</h1>
+      <p id="today"></p>
+    </header>
+    <h2 class="section-title">今日の確認</h2>
+    <form class="add-form" id="add-form"><input id="new-item" type="text" maxlength="60" placeholder="新しい確認項目" aria-label="新しい確認項目" required><button type="submit">＋ 追加</button></form>
+    <section class="card" id="items-list" aria-label="確認項目">
+      <div class="row"><label class="check-label"><input type="checkbox" data-id="door"><span class="rune-check" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none"><path d="m4 10 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="item-copy"><span class="label-text">鍵を施錠した</span><time class="checked-at" aria-live="polite"></time></span></label><button class="delete-item" type="button" aria-label="鍵を施錠したを削除">削除</button></div>
+      <div class="row"><label class="check-label"><input type="checkbox" data-id="window"><span class="rune-check" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none"><path d="m4 10 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="item-copy"><span class="label-text">窓を施錠した</span><time class="checked-at" aria-live="polite"></time></span></label><button class="delete-item" type="button" aria-label="窓を施錠したを削除">削除</button></div>
+      <div class="row"><label class="check-label"><input type="checkbox" data-id="lights"><span class="rune-check" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none"><path d="m4 10 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="item-copy"><span class="label-text">部屋の電気を消した</span><time class="checked-at" aria-live="polite"></time></span></label><button class="delete-item" type="button" aria-label="部屋の電気を消したを削除">削除</button></div>
+    </section>
+    <div class="summary"><span id="progress" aria-live="polite"></span><button id="reset" type="button">すべてのチェックを外す</button></div>
+    <footer>SAFE JOURNEY · RETURN WITH PEACE</footer>
+  </main>
+  <script>
+    let items = [];
+    const date = new Date();
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    const storageKey = `daily-check-${dateKey}`;
+    const customItemsKey = 'daily-check-custom-items';
+    const deletedItemsKey = 'daily-check-deleted-items';
+    const list = document.querySelector('#items-list');
+    document.querySelector('#today').textContent = new Intl.DateTimeFormat('ja-JP', {year:'numeric', month:'long', day:'numeric', weekday:'long'}).format(date);
+    let saved = {};
+    let customItems = [];
+    let deletedItems = [];
+    try { saved = JSON.parse(localStorage.getItem(storageKey) || '{}') || {}; } catch { saved = {}; }
+    try { customItems = JSON.parse(localStorage.getItem(customItemsKey) || '[]') || []; } catch { customItems = []; }
+    try { deletedItems = JSON.parse(localStorage.getItem(deletedItemsKey) || '[]') || []; } catch { deletedItems = []; }
+    function formatTime(value) {
+      if (!value) return '';
+      const checkedAt = new Date(value);
+      if (Number.isNaN(checkedAt.getTime())) return '';
+      return new Intl.DateTimeFormat('ja-JP', {hour:'2-digit', minute:'2-digit', second:'2-digit'}).format(checkedAt);
+    }
+    function registerItem(input, entry = {}) {
+      input.checked = typeof entry === 'object' && entry !== null ? Boolean(entry.checked) : Boolean(entry);
+      input.dataset.checkedAt = input.checked && typeof entry === 'object' && entry !== null ? entry.checkedAt || '' : '';
+      items.push(input);
+      input.addEventListener('change', () => {
+        input.dataset.checkedAt = input.checked ? new Date().toISOString() : '';
+        update();
+      });
+    }
+    function addRow(id, label, entry = {}) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const checkLabel = document.createElement('label');
+      checkLabel.className = 'check-label';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.dataset.id = id;
+      const box = document.createElement('span');
+      box.className = 'rune-check';
+      box.setAttribute('aria-hidden', 'true');
+      box.innerHTML = '<svg viewBox="0 0 20 20" fill="none"><path d="m4 10 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      const copy = document.createElement('span');
+      copy.className = 'item-copy';
+      const title = document.createElement('span');
+      title.className = 'label-text';
+      title.textContent = label;
+      const timestamp = document.createElement('time');
+      timestamp.className = 'checked-at';
+      timestamp.setAttribute('aria-live', 'polite');
+      copy.append(title, timestamp);
+      checkLabel.append(input, box, copy);
+      const remove = document.createElement('button');
+      remove.className = 'delete-item';
+      remove.type = 'button';
+      remove.textContent = '削除';
+      remove.setAttribute('aria-label', `${label}を削除`);
+      row.append(checkLabel, remove);
+      list.append(row);
+      registerItem(input, entry);
+    }
+    document.querySelectorAll('#items-list input[type="checkbox"]').forEach(input => {
+      if (deletedItems.includes(input.dataset.id)) input.closest('.row').remove();
+      else registerItem(input, saved[input.dataset.id]);
+    });
+    customItems = customItems.filter(item => !deletedItems.includes(item.id));
+    customItems.forEach(item => addRow(item.id, item.label, saved[item.id]));
+    function update() {
+      const checked = items.filter(item => item.checked).length;
+      document.querySelector('#progress').textContent = `${checked} / ${items.length} 項目完了`;
+      items.forEach(item => {
+        item.closest('.row').classList.toggle('done', item.checked);
+        const timestamp = item.closest('.row').querySelector('.checked-at');
+        timestamp.textContent = item.checked ? `チェック日時：${formatTime(item.dataset.checkedAt)}` : '';
+        timestamp.dateTime = item.checked ? item.dataset.checkedAt : '';
+      });
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(Object.fromEntries(items.map(item => [item.dataset.id, {checked:item.checked, checkedAt:item.checked ? item.dataset.checkedAt : ''}]))));
+      } catch {}
+    }
+    document.querySelector('#add-form').addEventListener('submit', event => {
+      event.preventDefault();
+      const field = document.querySelector('#new-item');
+      const label = field.value.trim();
+      if (!label) return;
+      const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+      customItems.push({id, label});
+      try { localStorage.setItem(customItemsKey, JSON.stringify(customItems)); } catch {}
+      addRow(id, label);
+      field.value = '';
+      field.focus();
+      update();
+    });
+    list.addEventListener('click', event => {
+      const button = event.target.closest('.delete-item');
+      if (!button) return;
+      const row = button.closest('.row');
+      const input = row.querySelector('input[type="checkbox"]');
+      const id = input.dataset.id;
+      items = items.filter(item => item !== input);
+      customItems = customItems.filter(item => item.id !== id);
+      if (!deletedItems.includes(id)) deletedItems.push(id);
+      try {
+        localStorage.setItem(customItemsKey, JSON.stringify(customItems));
+        localStorage.setItem(deletedItemsKey, JSON.stringify(deletedItems));
+      } catch {}
+      row.remove();
+      update();
+    });
+    document.querySelector('#reset').addEventListener('click', () => {
+      items.forEach(item => { item.checked = false; item.dataset.checkedAt = ''; });
+      update();
+    });
+    update();
+  </script>
+</body>
+</html>
+
+
+
+
+
